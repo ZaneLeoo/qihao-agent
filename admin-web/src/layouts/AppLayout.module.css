@@ -1,3 +1,7 @@
 .brand {
   letter-spacing: 0.02em;
 }
+
+.navLink {
+  border-radius: var(--mantine-radius-md);
+}
