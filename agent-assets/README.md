@@ -43,10 +43,23 @@ $env:AGENT_MCP_CONTEXT_ID = "<本次会话的上下文标识>"
 # 2. 起服务。
 #    启动器的参数（--patch）必须写在 app 参数（--port 这类）前面：第一个启动器
 #    不认识的 token 之后的所有内容都会原样转给 web app，而 web app 不认 --patch。
-dsh --profile web --patch "$PWD\agent-assets\cordis.patch.yml" --port 3099
+#    必须跑**构建产物**，不要用 `pnpm dsh`（源码直启），原因见下。
+node apps/cli/lib/bin.js --profile web --patch "$PWD\agent-assets\cordis.patch.yml" --port 3099
 ```
 
 首次用一个新的 `DSH_HOME` 时，profile 会在第一次启动时初始化（要联网装依赖），会比较久。控制台出现任何 `did not activate` 都要当成配置错误处理，别忽略。
+
+### 开发期不要用 `pnpm dsh`（源码直启）
+
+`pnpm dsh` 走 `node --import tsx/esm apps/cli/src/bin.ts`，实测**一调用工具就崩**：
+
+```
+本轮运行失败  Cannot read properties of undefined (reading 'prepare')
+```
+
+原因是模块图被切成两份。`TOOL_RUNTIME_SCHEDULER` 是模块级 `unique symbol`（`packages/core/tools/src/index.ts:463`），`ctx.tools[TOOL_RUNTIME_SCHEDULER].prepare(...)` 靠对象同一性取调度器；而源码直启下，tsx 按 `tsconfig.base.json:484` 的 paths 把静态 import 解析到 `src`，Loader 按包名解析插件行却落到 `lib`，同一个包被加载两次，symbol 不相等——取值 `undefined`，`.prepare` 就炸。
+
+对照验证过：同一个 patch、同一个预设，`node apps/cli/lib/bin.js` 起的实例工具调用正常，`pnpm dsh` 起的必崩。**这是 DSH 源码直启的问题，与本目录的资产无关**，也不影响交付（交付跑的就是构建产物）。
 
 `_runtime/` 是运行时数据（会话、设置、凭据、附件），已经在 `.gitignore` 里，不算资产。
 
