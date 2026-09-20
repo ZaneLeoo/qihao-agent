@@ -1,0 +1,103 @@
+# 企好Agent 的智能体组合。
+#
+# 这份文件只回答"这个智能体能做什么"：人格、技能、业务工具、上下文管理。
+# 注册表本身、沙箱、审批栈、持久化、模型路由属于宿主组合（base + web-app），
+# 不在 preset 里出现。
+#
+# 与 DSH 内核的契约：本文件只使用内核的稳定接口——预设目录格式、技能文件格式、
+# MCP 协议，以及下面这些插件名与它们声明式的 config。内核升级时预期不需要修改；
+# 如果上游改了插件名或 config 字段，`dsh --profile web --dump-config` 会在启动前
+# 直接失败，不会静默降级。
+#
+# 刻意不挂载的能力（面向业务用户的最小面）：
+#   tool-bash / tool-pwsh        执行任意命令
+#   tool-fs / tool-fs-search     读写本地文件。一个包同时注册 read / write / edit /
+#                                read_image，没有只读开关，所以只能整个不挂。
+#                                看图不需要它：图片由模型自身的视觉能力读取，
+#                                附件路径随消息提供。
+#   tool-jobs                    后台任务
+#   subagent / workflow / ralph  委派与编排
+#   plan-mode                    实现计划模式
+#   agent-instructions           业务工作区里没有 AGENTS.md 这类文件
+
+# ── 身份 ────────────────────────────────────────────────────────────────────
+
+- id: persona
+  name: "@deepseek-ai/dsh-persona"
+  config:
+    text: |-
+      你是企好AI助手，面向企业经营、采购、仓储和生产场景。
+
+      回复语言规则：每条面向用户的回复使用用户最近一条消息的语言；无法判断时沿用上一条消息的语言，仍无法判断时使用简体中文。单据号、字段名、编码、路径保持原文。
+
+      执行会改变业务数据的操作前，先展示完整草稿并取得用户明确确认。
+
+# ── 技能 ────────────────────────────────────────────────────────────────────
+
+# 技能注册表在宿主组合里，按 scope 分层，这一行注册进本 preset 的层。
+# includeDefaultRoots: false —— 只认本目录下的 skills/，不扫项目目录与用户目录，
+# 避免客户机上残留的技能混进来。技能随 preset 目录整体分发。
+- id: skill-filesystem
+  name: "@deepseek-ai/dsh-skill-filesystem"
+  config:
+    includeDefaultRoots: false
+    customSkillDirs:
+      - !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
+
+- id: tool-skill
+  name: "@deepseek-ai/dsh-tool-skill"
+
+# ── 业务工具（MCP）──────────────────────────────────────────────────────────
+
+# 一个实例对接一个业务系统，模型侧的工具名是 mcp__mom__<工具名>。
+# serverName 是工具名的组成部分：改名会让技能里写死的工具名全部失效，
+# 所以在这里定死，部署环境只覆盖 URL 与凭据。
+#
+# failOnStartupError: true —— 连不上就让插件 fiber 失败并写日志。默认值 false
+# 会静默降级：模型看不到工具，而技能还在教它调用。它不会阻止 harness 启动
+# （MCP 行不在 requiredStartupEntryIds 里），所以这是"可见的失败"，不是"起不来"。
+#
+# 凭据口径：当前后端是一把全局静态密钥（X-Agent-Tool-Key）加每会话上下文
+# （X-Agent-Context-Id）。目标形态是每用户短期令牌，由编排服务拉起实例时注入。
+- id: mcp-mom
+  name: "@deepseek-ai/dsh-mcp-client"
+  config:
+    serverName: mom
+    transport: streamable-http
+    url: !!js process.env.AGENT_MCP_URL ?? 'http://localhost:8090/api/v1/agent/mcp'
+    headers:
+      X-Agent-Tool-Key: !!js process.env.AGENT_MCP_TOOL_KEY ?? ''
+      X-Agent-Context-Id: !!js process.env.AGENT_MCP_CONTEXT_ID ?? ''
+    failOnStartupError: true
+
+# ── 对话控制 ────────────────────────────────────────────────────────────────
+
+- id: tool-ask-user
+  name: "@deepseek-ai/dsh-tool-ask-user"
+
+- id: tool-todo
+  name: "@deepseek-ai/dsh-tool-todo"
+
+# ── 上下文管理 ──────────────────────────────────────────────────────────────
+
+# compaction-basic 通过 ctx.get 读 toolResultPruner，两者必须同域，
+# 否则解析到的是这个 preset 没有填充的宿主注册表。
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: "@deepseek-ai/dsh-compaction-basic"
+
+    - id: command-compact
+      name: "@deepseek-ai/dsh-command-compact"
+
+    - id: tool-result-pruner
+      name: "@deepseek-ai/dsh-compaction-tool-result-pruner"
+      config:
+        thresholdChars: 8192
+        headChars: 4096
+        tailChars: 1024

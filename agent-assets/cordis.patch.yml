@@ -1,0 +1,19 @@
+# 覆盖 DSH 的预设装配：把预设根指向本目录，并关掉内核自带与用户目录两处来源。
+#
+# 两件必须知道的事：
+#
+# 1. patch 是**整段替换**目标行的 config，不是深合并。所以覆盖 agent-presets
+#    这一行时必须重写 default，漏了会因为 schema required 直接起不来。
+# 2. roots 里的相对路径按**进程工作目录**解析，不是按本文件所在目录。所以这里用
+#    AGENT_ASSETS_ROOT 显式给绝对路径，未设置时回退成"从仓库根启动"。
+#
+# 用法：
+#   dsh --profile web --patch <本文件绝对路径>
+- id: agent-presets
+  config:
+    default: assistant
+    roots:
+      - path: !!js "process.env.AGENT_ASSETS_ROOT ?? process.getBuiltinModule('node:path').resolve(process.cwd(), 'agent-assets/agent-presets')"
+        trust: system
+    includeShippedRoot: false
+    includeUserRoot: false
