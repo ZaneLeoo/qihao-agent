@@ -67,7 +67,7 @@
   config:
     serverName: mom
     transport: streamable-http
-    url: !!js process.env.AGENT_MCP_URL ?? 'http://localhost:8090/api/v1/agent/mcp'
+    url: !!js process.env.AGENT_MCP_URL ?? 'http://localhost:9991/api/v1/agent/mcp'
     headers:
       X-Agent-Tool-Key: !!js process.env.AGENT_MCP_TOOL_KEY ?? ''
       X-Agent-Context-Id: !!js process.env.AGENT_MCP_CONTEXT_ID ?? ''

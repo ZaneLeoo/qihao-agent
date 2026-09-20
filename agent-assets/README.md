@@ -36,7 +36,7 @@ agent-assets/
 # 1. 环境变量。DSH_HOME 必须在启动进程前设置，不能写进 .env。
 $env:DSH_HOME = "$PWD\_runtime\dsh-home"
 $env:AGENT_ASSETS_ROOT = "$PWD\agent-assets\agent-presets"
-$env:AGENT_MCP_URL = "http://localhost:8090/api/v1/agent/mcp"
+$env:AGENT_MCP_URL = "http://localhost:9991/api/v1/agent/mcp"   # MOM 后端，不是本平台的 8090
 $env:AGENT_MCP_TOOL_KEY = "<向后端要>"
 $env:AGENT_MCP_CONTEXT_ID = "<本次会话的上下文标识>"
 
