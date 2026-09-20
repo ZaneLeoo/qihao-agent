@@ -1,0 +1,29 @@
+# 依赖与构建产物
+target/
+node_modules/
+dist/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# 运行时数据（每个用户的会话、设置、凭据、附件都在这里，绝不入库）
+_runtime/
+logs/
+*.log
+
+# 本地配置与密钥
+.env
+.env.local
+*.local.yml
+application-local.yml
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+*.swp
+
+# 系统
+.DS_Store
+Thumbs.db

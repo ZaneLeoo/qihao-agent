@@ -1,0 +1,28 @@
+#!/bin/sh
+# 提交前检查：只检查本次提交涉及的模块，不做全量检查。
+#
+# 开发者可以在 backend/.env.local 里覆盖本机的 JAVA_HOME（该文件不入库），例如：
+#   export JAVA_HOME=/path/to/jdk-17
+
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+# 后端：格式化 + 静态检查（跳过测试，测试交给 CI 与本地 mvn verify）
+if printf '%s\n' "$staged" | grep -q '^backend/'; then
+  if [ -f backend/.env.local ]; then
+    # shellcheck disable=SC1091
+    . ./backend/.env.local
+  fi
+  echo "[pre-commit] 检测到后端改动，校验代码格式……"
+  if ! (cd backend && mvn -q -B -ntp spotless:check); then
+    echo ""
+    echo "[pre-commit] 后端代码格式不合规。"
+    echo "             修复：cd backend && mvn spotless:apply"
+    exit 1
+  fi
+fi
+
+# 前端：husky + lint-staged 已在 npm 侧接管，这里不重复
+
+exit 0
