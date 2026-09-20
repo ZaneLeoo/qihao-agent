@@ -9,7 +9,7 @@
 | 层次 | 状态 | 说明 |
 |---|---|---|
 | 位置独立 | 做到 | 预设根指向本目录；`includeShippedRoot: false` 关掉内核自带预设，`includeUserRoot: false` 关掉 `$DSH_HOME/.agent-presets` |
-| 格式独立 | 有条件 | `agent.cordis.yml` 里写的是内核的插件名与 config 字段。DSH 是 pre-stable，上游改名或改字段就会失效——所以每次升级跑一次兼容性检查（见下），失败是立即且指名的 |
+| 格式独立 | 有条件 | `agent.cordis.yml` 里写的是内核的插件名与 config 字段。DSH 是 pre-stable，上游改名或改字段就会失效——所以每次升级按下面三步验证，不兼容都会指名到行与字段 |
 | 产品插件独立 | 有条件 | 品牌、附件桥这类自有插件跟随客户端插件 API 走，是真正的耦合点。原则是把数量压到最少 |
 
 ## 目录
@@ -40,26 +40,52 @@ $env:AGENT_MCP_URL = "http://localhost:8090/api/v1/agent/mcp"
 $env:AGENT_MCP_TOOL_KEY = "<向后端要>"
 $env:AGENT_MCP_CONTEXT_ID = "<本次会话的上下文标识>"
 
-# 2. 先验证装配能不能起来。这一步同时就是内核兼容性检查。
-dsh --profile web --dump-config --patch "$PWD\agent-assets\cordis.patch.yml"
-
-# 3. 起服务
-dsh web --patch "$PWD\agent-assets\cordis.patch.yml"
+# 2. 起服务。
+#    启动器的参数（--patch）必须写在 app 参数（--port 这类）前面：第一个启动器
+#    不认识的 token 之后的所有内容都会原样转给 web app，而 web app 不认 --patch。
+dsh --profile web --patch "$PWD\agent-assets\cordis.patch.yml" --port 3099
 ```
+
+首次用一个新的 `DSH_HOME` 时，profile 会在第一次启动时初始化（要联网装依赖），会比较久。控制台出现任何 `did not activate` 都要当成配置错误处理，别忽略。
 
 `_runtime/` 是运行时数据（会话、设置、凭据、附件），已经在 `.gitignore` 里，不算资产。
 
 ## 升级 DSH 内核时
 
-**资产不动。** 跑一次：
+**资产不动。** 验证分三步，强度递增，各自能查出不同的东西：
+
+**1. patch 语法与叠加顺序**
 
 ```powershell
 dsh --profile web --dump-config --patch <本目录>\cordis.patch.yml
 ```
 
-它会在启动前解析每个插件的包名、按各插件的 Config schema 校验字段、解析预设根目录并确认 `default` 指向的预设存在。任何一项不满足都**直接失败并指名**，不会静默降级。照着报错改一处即可。
+只验证 patch 文件本身能解析、能叠到 profile 上。注意它**不执行 `!!js` 表达式、不解析插件名、不校验 config 字段**——输出里那些表达式是原文打印，不是求值结果。别把它当成兼容性检查。
 
-这是"内核可以直接拉取"这句话的兑现方式：不是"应该没事"，是"不兼容就起不来"。
+**2. 真实启动**
+
+```powershell
+dsh --profile web --patch <本目录>\cordis.patch.yml --port 3099
+```
+
+`!!js` 在这一步才执行，每一行按各自的 Config schema 校验。预设根不存在会立刻打印一条指名到行的错误：
+
+```
+dsh: warning: 1 entry did not activate
+agent-presets (@deepseek-ai/dsh-agent-presets): Error: agent-assets: preset root not found: ...
+```
+
+注意它的强度：**是启动瞬间的显式报错，不是启动失败**——这一行不激活，服务照起，预设不可用。
+
+**3. 预设组合（只在建会话时发生）**
+
+`agent.cordis.yml` 要等会话挂载预设才加载。界面上新建会话、选「企好Agent」即可。插件名解析不到时会指名到行：
+
+```
+row "persona" names a plugin that cannot be resolved: @deepseek-ai/dsh-personaa
+```
+
+这是"内核可以直接拉取"的兑现方式：不兼容不会静默——第 2 步报在控制台，第 3 步报在会话上，都指到具体的行和字段。
 
 ## 待办
 

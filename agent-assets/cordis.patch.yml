@@ -1,19 +1,32 @@
 # 覆盖 DSH 的预设装配：把预设根指向本目录，并关掉内核自带与用户目录两处来源。
 #
-# 两件必须知道的事：
+# 两个必须知道的点：
 #
 # 1. patch 是**整段替换**目标行的 config，不是深合并。所以覆盖 agent-presets
 #    这一行时必须重写 default，漏了会因为 schema required 直接起不来。
-# 2. roots 里的相对路径按**进程工作目录**解析，不是按本文件所在目录。所以这里用
-#    AGENT_ASSETS_ROOT 显式给绝对路径，未设置时回退成"从仓库根启动"。
+# 2. roots 里的相对路径按**进程工作目录**解析，不是按本文件所在目录。所以这里优先用
+#    AGENT_ASSETS_ROOT；没有这个变量时回退成"从仓库根启动"，并且**根目录不存在就
+#    直接报错**——内核的发现逻辑对不存在的根只返回空列表，不报错，那会让配置错误
+#    拖到建会话时才以"找不到 default 预设"的形式暴露。
 #
-# 用法：
-#   dsh --profile web --patch <本文件绝对路径>
+# 用法（启动器参数必须写在 app 参数前面）：
+#   dsh --profile web --patch <本文件绝对路径> --port 3099
 - id: agent-presets
   config:
     default: assistant
     roots:
-      - path: !!js "process.env.AGENT_ASSETS_ROOT ?? process.getBuiltinModule('node:path').resolve(process.cwd(), 'agent-assets/agent-presets')"
+      - path: !!js >-
+          (function () {
+            const fs = process.getBuiltinModule('node:fs')
+            const path = process.getBuiltinModule('node:path')
+            const root = process.env.AGENT_ASSETS_ROOT
+              ?? path.resolve(process.cwd(), 'agent-assets/agent-presets')
+            if (!fs.existsSync(root)) {
+              throw new Error('agent-assets: preset root not found: ' + root
+                + ' — set AGENT_ASSETS_ROOT to the absolute assets path, or launch from the repository root')
+            }
+            return root
+          })()
         trust: system
     includeShippedRoot: false
     includeUserRoot: false
