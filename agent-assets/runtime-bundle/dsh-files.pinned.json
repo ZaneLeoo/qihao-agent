@@ -1,0 +1,6 @@
+{
+  "name": "dsh-files",
+  "version": "0.5.1",
+  "spec": "git+https://github.com/taxueseek/dsh-files.git#a814c7b89b0800870d3404d7b51362e9914a8092",
+  "commit": "a814c7b89b0800870d3404d7b51362e9914a8092"
+}
