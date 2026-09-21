@@ -30,7 +30,7 @@ interface NavSection {
   items: NavItem[]
 }
 
-/** 信息架构：按"配置 → 权限 → 知识 → 运营 → 系统"分组。 */
+/** 信息架构：按「配置 → 权限 → 知识 → 运营 → 系统」分组。 */
 const NAV: NavSection[] = [
   {
     label: null,
@@ -77,30 +77,31 @@ export function AppLayout() {
   const { pathname } = useLocation()
 
   return (
-    <AppShell header={{ height: 56 }} navbar={{ width: 236, breakpoint: 'sm' }} padding="md">
-      <AppShell.Header>
+    <AppShell header={{ height: 52 }} navbar={{ width: 232, breakpoint: 'sm' }} padding="md">
+      <AppShell.Header className={styles.header}>
         <Group h="100%" px="md" justify="space-between">
           <Group gap="xs">
-            <Text fw={700} className={styles.brand}>
+            <Box className={styles.logo}>A</Box>
+            <Text fw={600} size="sm" className={styles.brand}>
               企业 Agent 平台
             </Text>
             <Badge variant="light" size="sm">
               原型
             </Badge>
           </Group>
-          <Text size="sm" c="dimmed">
+          <Text size="xs" c="dimmed">
             管理员 · 林志豪
           </Text>
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="xs">
+      <AppShell.Navbar className={styles.navbar} p="xs">
         <ScrollArea type="hover" style={{ flex: 1 }}>
-          <Stack gap={2}>
+          <Stack gap={1}>
             {NAV.map((section, index) => (
               <Box key={section.label ?? `section-${String(index)}`}>
                 {section.label !== null && (
-                  <Text size="xs" c="dimmed" fw={600} px="sm" pt="md" pb={4}>
+                  <Text className={styles.sectionLabel} size="xs" fw={600} px="sm" pt="md" pb={4}>
                     {section.label}
                   </Text>
                 )}
@@ -121,7 +122,7 @@ export function AppLayout() {
         </ScrollArea>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main className={styles.main}>
         <Outlet />
       </AppShell.Main>
     </AppShell>

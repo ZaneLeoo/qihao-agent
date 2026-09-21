@@ -1,7 +1,39 @@
+.header {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  background: var(--mantine-color-white);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--mantine-color-brand-6);
+  color: var(--mantine-color-white);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .brand {
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+}
+
+.navbar {
+  background: var(--mantine-color-gray-0);
+  border-right: 1px solid var(--mantine-color-gray-3);
+}
+
+.sectionLabel {
+  color: var(--mantine-color-gray-6);
+  letter-spacing: 0.04em;
 }
 
 .navLink {
-  border-radius: var(--mantine-radius-md);
+  color: var(--mantine-color-gray-8);
+}
+
+.main {
+  background: var(--mantine-color-gray-0);
 }
