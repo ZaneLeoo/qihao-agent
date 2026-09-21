@@ -18,6 +18,7 @@
 agent-assets/
 ├── cordis.patch.yml                    覆盖内核装配：预设根指向本目录
 ├── .env.example
+├── runtime-bundle/                     受控附件桥与只读文档解析的可安装 bundle
 └── agent-presets/
     └── assistant/                      一个智能体 = 一个预设目录，目录名就是 id
         ├── preset.yml                  展示信息（名称 / 描述 / 排序），只给人看
@@ -30,22 +31,27 @@ agent-assets/
 
 `preset.yml` 里**不能**写 id 或 trust——id 就是目录名，trust 来自根目录。
 
+## 安装业务运行时能力
+
+首次部署或更换 `DSH_HOME` 后，在 `runtime-bundle/` 目录执行 `scripts/install.ps1`。它把 `@qihao/dsh-runtime-bundle` 安装到目标 profile；bundle 固定 `dsh-files` 的审计提交，提供 `upload_agent_image` 和只读 `read_document`，不增加通用文件系统、Shell 或写入能力。
+
+```powershell
+.\agent-assets\runtime-bundle\scripts\install.ps1 -Profile web -DshRoot C:\Work\Code\AI\deepseek-harness
+```
+
+二维码/条码桥只会读取当前用户消息中的 PNG/JPEG 图片。图片上传和后续 `decode_image_code` 都绑定 `AGENT_MCP_CONTEXT_ID`，不能跨业务上下文复用。
+
 ## 本地跑起来
 
 ```powershell
-# 1. 环境变量。DSH_HOME 必须在启动进程前设置，不能写进 .env。
-$env:DSH_HOME = "$PWD\_runtime\dsh-home"
-$env:AGENT_ASSETS_ROOT = "$PWD\agent-assets\agent-presets"
-$env:AGENT_MCP_URL = "http://localhost:9991/api/v1/agent/mcp"   # MOM 后端，不是本平台的 8090
-$env:AGENT_MCP_TOOL_KEY = "<向后端要>"
-$env:AGENT_MCP_CONTEXT_ID = "<本次会话的上下文标识>"
+# 1. 将本目录的 .env.example 复制为 deepseek-harness 根目录的 .env，填写工具密钥和有效的临时上下文 ID。
+Copy-Item .\agent-assets\.env.example .\.env
 
-# 2. 起服务。
-#    启动器的参数（--patch）必须写在 app 参数（--port 这类）前面：第一个启动器
-#    不认识的 token 之后的所有内容都会原样转给 web app，而 web app 不认 --patch。
-#    必须跑**构建产物**，不要用 `pnpm dsh`（源码直启），原因见下。
-node apps/cli/lib/bin.js --profile web --patch "$PWD\agent-assets\cordis.patch.yml" --port 3099
+# 2. 从 deepseek-harness 根目录启动构建产物。
+pnpm web qihao-agent
 ```
+
+`AGENT_MCP_CONTEXT_ID` 是 MOM 后端签发的短期值，联调时可以写在 `.env`；它过期后换一个值再重启即可。上线后由登录会话自动注入，不能把不同用户共用的固定值作为正式方案。
 
 首次用一个新的 `DSH_HOME` 时，profile 会在第一次启动时初始化（要联网装依赖），会比较久。控制台出现任何 `did not activate` 都要当成配置错误处理，别忽略。
 
@@ -102,9 +108,7 @@ row "persona" names a plugin that cannot be resolved: @deepseek-ai/dsh-personaa
 
 ## 待办
 
-1. **二维码 / 条码通路**：技能里目前没有，请用户直接给编码原文。补齐需要把 `qihao-attachment-bridge` 重做成独立插件包（提供 `upload_agent_image`，把 DSH 附件上传成短期 imageId，再由 MCP 的 `decode_image_code` 解码），约 120 行。**插件怎么随产品分发**（profile 依赖走私有 registry，还是 `file:` 链接）也还没定。
-2. **文档输入通路**：用户上传 `.xlsx` / `.docx` 时，当前没有把文档正文交给模型的通路。三条可选路线：① 挂回 `tool-fs`（但会连 write / edit 一起挂上，没有只读开关）；② 门户侧提取正文再注入本轮上下文；③ 用 DSH 的 office 技能。**未定。**
-3. **凭据口径**：现在是全局静态密钥加每会话上下文。目标是每用户短期令牌，由编排服务拉起实例时注入。后端的行级数据权限目前对 MCP 工具完全没生效，这一条要先在后端补。
+**凭据口径**：现在是全局静态密钥加每会话上下文。目标是每用户短期令牌，由编排服务拉起实例时注入。后端的行级数据权限目前对 MCP 工具完全没生效，这一条要先在后端补。
 
 ## 写技能时的检查清单
 
