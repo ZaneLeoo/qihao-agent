@@ -48,6 +48,16 @@
 - id: tool-skill
   name: "@deepseek-ai/dsh-tool-skill"
 
+# 当前消息图片的受控上传。附件存储只在 preset 的 agent scope 可用，
+# 所以不能把这一行放在 profile 的全局 bundle patch 中。
+- id: qihao-attachment-bridge
+  name: '@qihao/dsh-runtime-bundle/attachment-bridge'
+  config:
+    uploadUrl: !!js process.env.AGENT_IMAGE_UPLOAD_URL ?? 'http://localhost:9991/api/v1/agent/tools/images/upload'
+    toolKey: !!js process.env.AGENT_MCP_TOOL_KEY ?? ''
+    contextId: !!js process.env.AGENT_MCP_CONTEXT_ID ?? ''
+    timeoutMs: 30000
+
 # ── 业务工具（MCP）──────────────────────────────────────────────────────────
 
 # 一个实例对接一个业务系统，模型侧的工具名是 mcp__mom__<工具名>。
