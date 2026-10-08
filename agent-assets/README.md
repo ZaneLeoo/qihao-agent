@@ -4,7 +4,7 @@
 
 ## 为什么单独放一个目录
 
-资产必须**独立于 DSH 运行时**：内核升级时直接拉取新版本，资产一行不改。要做到这一点，资产只使用内核的稳定接口，并且不出现在 `$DSH_HOME` 下。
+资产源码独立于 DSH 运行时，通过公开插件接口接入。升级 DSH 后仍需验证插件接口和用户流程，接口变化时适配资产；安装副本放在 profile 内，源码继续由本仓库管理。
 
 | 层次 | 状态 | 说明 |
 |---|---|---|
@@ -19,6 +19,10 @@ agent-assets/
 ├── cordis.patch.yml                    覆盖内核装配：预设根指向本目录
 ├── .env.example
 ├── runtime-bundle/                     受控附件桥与只读文档解析的可安装 bundle
+├── brand-plugin/                       原图 QH Logo 与企好AI侧栏名称
+├── camera-plugin/                      摄像头设备选择、预览与拍照
+├── bom-import-plugin/                  图纸分页读取、BOM 确认表单与本批依赖树
+├── scripts/                            企好启动脚本及测试
 └── agent-presets/
     └── assistant/                      一个智能体 = 一个预设目录，目录名就是 id
         ├── preset.yml                  展示信息（名称 / 描述 / 排序），只给人看
@@ -34,6 +38,14 @@ agent-assets/
 ## 安装业务运行时能力
 
 首次部署或更换 `DSH_HOME` 后，在 `runtime-bundle/` 目录执行 `scripts/install.ps1`。它把 `@qihao/dsh-runtime-bundle` 安装到目标 profile；bundle 固定 `dsh-files` 的审计提交，提供 `upload_agent_image` 和只读 `read_document`，不增加通用文件系统、Shell 或写入能力。
+
+品牌由 `brand-plugin/` 独立提供，先在该目录执行 `npm ci --legacy-peer-deps`、`npm test`，安装脚本会一起安装。侧栏显示原始 QH Logo 和“企好AI”。首屏标题“企好AI智能助手”、隐藏预览徽标和移除首次进入的内测声明保留为 DSH 源码改动，升级时须保留；浏览器元信息使用 DSH 默认值。
+
+摄像头由 `camera-plugin/` 提供，先执行 `npm ci --legacy-peer-deps`、`npm run check`，安装脚本会一起安装。DSH 仅保留 `conversation.input.camera` 插槽、禁用状态和附件回调，摄像头组件、样式、文案和设备处理逻辑均在本仓库。输入栏权限按钮恢复 DSH 默认位置。
+
+BOM 插件需先在 `bom-import-plugin/` 执行 `npm ci --legacy-peer-deps`、`npm run check`；上面的安装脚本会一起镜像并安装它。Linux 的 BOM 插件安装入口为 `node scripts/install.mjs`，详见 [插件说明](bom-import-plugin/README.md)。安装后才可挂载新增的 `bom-import` 行；不要把源码目录直接 link 到 profile 外。
+
+`bom-drawing-import` 负责“页面识别 → 主数据核对 → 整批校验 → 只读确认 → 草稿创建”。表格、依赖树与原图预览使用真实 `confirmationData`；返回修改后须重新校验。PDF 默认单次 8 页，由 `agent.cordis.yml` 的 `maxPagesPerCall` 控制，不是 PDF 总页数限制。MCP 接入需指向 `/api/v1/agent/mcp2`，沿用 `mom` 命名空间。
 
 ```powershell
 .\agent-assets\runtime-bundle\scripts\install.ps1 -Profile web -DshRoot C:\Work\Code\AI\deepseek-harness
@@ -52,6 +64,8 @@ pnpm web qihao-agent
 ```
 
 `AGENT_MCP_CONTEXT_ID` 是 MOM 后端签发的短期值，联调时可以写在 `.env`；它过期后换一个值再重启即可。上线后由登录会话自动注入，不能把不同用户共用的固定值作为正式方案。
+
+启动实现位于 `scripts/web-profile.mjs`。DSH 的 `package.json` 仅保留一行快捷命令；从其他目录或 Linux 启动的方法见 [启动说明](scripts/README.md)。升级 DSH 时须检查首屏定制、内测声明移除、摄像头插槽与这行命令，其余企好插件由本仓库管理。
 
 首次用一个新的 `DSH_HOME` 时，profile 会在第一次启动时初始化（要联网装依赖），会比较久。控制台出现任何 `did not activate` 都要当成配置错误处理，别忽略。
 

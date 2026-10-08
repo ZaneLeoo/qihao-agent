@@ -62,6 +62,16 @@
     contextId: !!js process.env.AGENT_MCP_CONTEXT_ID ?? ''
     timeoutMs: 30000
 
+# 会话图纸读取与用户确认，业务保存仍交给 MOM 的 MCP2 工具。
+- id: bom-import
+  name: '@qihao/dsh-bom-import/tools'
+  config:
+    maxPagesPerCall: 8
+    imageMaxEdge: 2000
+    maxFileBytes: 33554432
+    maxSourceBytes: 134217728
+    maxSourcePages: 200
+
 # ── 业务工具（MCP）──────────────────────────────────────────────────────────
 
 # 一个实例对接一个业务系统，模型侧的工具名是 mcp__mom__<工具名>。
@@ -81,7 +91,7 @@
   config:
     serverName: mom
     transport: streamable-http
-    url: !!js process.env.AGENT_MCP_URL ?? 'http://localhost:9991/api/v1/agent/mcp'
+    url: !!js process.env.AGENT_MCP_URL ?? 'http://localhost:9991/api/v1/agent/mcp2'
     headers:
       X-Agent-Tool-Key: !!js process.env.AGENT_MCP_TOOL_KEY ?? ''
       X-Agent-Context-Id: !!js process.env.AGENT_MCP_CONTEXT_ID ?? ''

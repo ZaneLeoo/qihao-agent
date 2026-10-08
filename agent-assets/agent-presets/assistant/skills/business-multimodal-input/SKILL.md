@@ -1,6 +1,6 @@
 ---
 name: business-multimodal-input
-description: 用户以文字、照片、二维码/条码、XLSX、DOCX 或文本型 PDF 提供采购、入库、生产等业务单据资料时使用。把附件内容变为待核验字段候选，不创建业务数据；具体单据必须继续加载对应生单技能。
+description: 用户以文字、照片、二维码/条码、XLSX、DOCX 或 PDF 提供采购、入库、生产、BOM 等业务资料时使用。把附件内容变为待核验字段候选，不创建业务数据；具体单据必须继续加载对应技能。
 user-invocable: false
 ---
 
@@ -16,7 +16,8 @@ user-invocable: false
 - **普通图片**：用视觉能力读取清晰的标签、表格和单据文字。图片推断的品牌、型号、规格、单位、数量或价格必须让用户核对。
 - **二维码和条码**：只有需要精确编码原文时，调用 `upload_agent_image`，传当前消息图片的 1 起始 `imageIndex`，再调用 `mcp__mom__decode_image_code`。每次只处理一张图片；解码结果仍只是查询或核验候选。不要传路径、URL、Base64 或附件标识。
 - **XLSX、DOCX、文本型 PDF 和文本文件**：用 `read_document` 先查看工作表、段落或小窗口，再按需分页读取。表格要保留工作表名、表头和行号。
-- **扫描 PDF**：`read_document` 没有文本层时，不声称已经 OCR；请用户上传清晰页面图片或粘贴文字。
+- **BOM 图纸 PDF（含扫描件）**：加载 `bom-drawing-import`，用 `read_bom_drawing_pages` 分批取得页面图片后由视觉模型识别。不要因 `read_document` 没有文本层就认定图纸无法读取。
+- **其他扫描 PDF**：`read_document` 没有文本层时，不声称已经 OCR；请用户上传清晰页面图片或粘贴文字。
 
 ## 共同闸门
 

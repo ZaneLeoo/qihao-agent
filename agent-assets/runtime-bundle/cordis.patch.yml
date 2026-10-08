@@ -1,4 +1,13 @@
 # 此 bundle 只向 profile 提供可解析的插件包。
 # upload_agent_image 必须在业务 preset 内挂载：附件存储服务按 agent scope 提供，
 # 放到 profile 全局层会因缺少 attachments 而无法激活。
-[]
+- id: ui-brand-official
+  disabled: true
+- insert:
+    - id: qihao-brand-ui
+      name: '@qihao/dsh-brand'
+    - id: qihao-camera-ui
+      name: '@qihao/dsh-camera'
+    # 浏览器模块由 profile 的 Loader 发现；不能只放在会话 preset 内。
+    - id: qihao-bom-review-ui
+      name: '@qihao/dsh-bom-import'
