@@ -120,7 +120,10 @@ apply(
   },
   Config({}),
 );
-assert.equal(definitions.length, 2);
+assert.equal(definitions.length, 3);
+assert.ok(
+  definitions.some((tool) => tool.name === "read_business_document_pages"),
+);
 const execution = {
   signal: new AbortController().signal,
   agent: { session: { snapshotEvents: () => events } },
@@ -133,7 +136,7 @@ for (const tool of definitions) {
   assert.ok(
     tool.output.render(args, value).some((block) => block.type === "text"),
   );
-  if (tool.name === "read_bom_drawing_pages") {
+  if (tool.name !== "review_bom_import") {
     assert.ok(
       tool.output
         .render(args, value)

@@ -47,6 +47,8 @@ BOM 插件需先在 `bom-import-plugin/` 执行 `npm ci --legacy-peer-deps`、`n
 
 `bom-drawing-import` 负责“页面识别 → 主数据核对 → 整批校验 → 只读确认 → 草稿创建”。表格、依赖树与原图预览使用真实 `confirmationData`；返回修改后须重新校验。PDF 默认单次 8 页，由 `agent.cordis.yml` 的 `maxPagesPerCall` 控制，不是 PDF 总页数限制。MCP 接入需指向 `/api/v1/agent/mcp2`，沿用 `mom` 命名空间。
 
+`quality-inventory-test-create` 负责产品实验单的图片/文档识别、三级记录整理、校验、确认和创建。产品及方案按资料原文记录，不强制匹配档案；同一产品的多次实验各有自己的检测孙表。扫描PDF使用 `read_business_document_pages`，复用BOM插件的受控页面渲染。后端需提供 `validate_quality_inventory_test_create_v2`、`create_quality_inventory_test_v2`、`query_quality_inventory_test_write_result_v2`。字段规则和确认流程见 [产品实验单 Skill](agent-presets/assistant/skills/quality-inventory-test-create/SKILL.md)。
+
 ```powershell
 .\agent-assets\runtime-bundle\scripts\install.ps1 -Profile web -DshRoot C:\Work\Code\AI\deepseek-harness
 ```

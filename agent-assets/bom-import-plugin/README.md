@@ -1,6 +1,6 @@
 # 企好 BOM 图纸导入插件
 
-此插件随 `agent-assets` 分发，不修改 DSH 内核。Profile 挂载 `@qihao/dsh-bom-import` 以加载浏览器确认界面；企好 preset 挂载 `@qihao/dsh-bom-import/tools`，提供 `read_bom_drawing_pages`、`review_bom_import`。业务 MCP 命名空间为 `mom`。
+此插件随 `agent-assets` 分发，不修改 DSH 内核。Profile 挂载 `@qihao/dsh-bom-import` 以加载浏览器确认界面；企好 preset 挂载 `@qihao/dsh-bom-import/tools`，提供 `read_bom_drawing_pages`、`read_business_document_pages`、`review_bom_import`。业务 MCP 命名空间为 `mom`。
 
 DSH 浏览器模块只从 Profile 的 Loader 条目发现。只在会话 preset 中挂载工具，浏览器不会加载本插件，确认请求会退回通用问答框。Profile 入口不注册业务工具，不依赖会话附件；工具入口继续由 preset 的附件和用户问答服务管理。
 
@@ -29,6 +29,8 @@ Linux 单独安装 BOM 插件：`node scripts/install.mjs --dsh-home /path/to/ds
 PDF.js 和 Canvas 使用明确版本，不依赖其他插件偶然安装的包。无需 Python 或单独服务进程；Linux 安装时需保留 Canvas 对应平台的可选二进制包。
 
 ## 图纸读取
+
+`read_business_document_pages` 使用同一套受控附件及 PDF 页面渲染能力，供产品实验检测表等业务资料使用；输入、分页和图片输出契约与图纸读取一致，不执行OCR或业务建单。BOM流程继续使用原工具名称。更新插件后须重新镜像安装并重启DSH，才能在新会话中发现新增入口。
 
 首次调用 `read_bom_drawing_pages({})`，返回来源目录及前 8 页图片。后续传同一 `sourceSetId` 和 `pages`。本批按附件顺序、PDF 自然页序统一编号；界面显示原文件名与原页码。`remainingPages` 指本次调用未返回的页，Agent 应累计已处理页码，不能把它当作累计识别进度。
 
